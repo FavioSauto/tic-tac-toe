@@ -8,12 +8,17 @@ const winPositions = [
   [0, 4, 8],
   [2, 4, 6],
 ];
+const sizes = [20, 30, 40, 50, 60, 70, 80, 90, 100];
 const dataCells = [...document.querySelectorAll("[data-cell]")];
 const gameResult = document.getElementById("previousGameResult");
 const newGameBackground = document.getElementById("newGame");
 const newGameButton = document.getElementById("newGameButton");
+const crossContainer = document.getElementById(`cross-figures`);
+const circleContainer = document.getElementById(`circle-figures`);
 
 let isCross = true;
+let figureSelected = false;
+let selectedSize = 0;
 
 startGame();
 
@@ -21,6 +26,11 @@ newGameButton.addEventListener("click", newGame);
 
 function newGame() {
   isCross = true;
+  selectedSize = 0;
+  figureSelected = false;
+
+  cleanBoard();
+
   startGame();
 }
 
@@ -31,15 +41,23 @@ function startGame() {
     dataCells[i].removeEventListener("click", createSymbol);
     dataCells[i].addEventListener("click", createSymbol);
   }
+  createFigures('cross', sizes);
+  createFigures('circle', sizes);
 }
 
 function createSymbol(element) {
-  if (!element.target.innerHTML) {
+  if (figureSelected && selectedSize > 0 && Number(element.target.getAttribute('data-size')) < selectedSize) {
+    element.target.setAttribute('data-size', selectedSize)
+    
+    isCross ? element.target.classList.add('x') : element.target.classList.add('o');
+    
     if (isCross) {
-      createCross(element);
+      createCross(element, selectedSize);
+      figureSelected = false;
     } else {
-      createCircle(element);
-    }
+      createCircle(element, selectedSize);
+      figureSelected = false;
+      }
 
     if (checkWin(isCross)) {
       endGame(false);
@@ -51,24 +69,32 @@ function createSymbol(element) {
   }
 }
 
-function createCircle(element) {
-  if (!element.target.innerHTML) {
-    element.target.innerHTML = `
-    <div class="circle">
-    </div>
-    `;
-  }
+function createCircle(element, size) {
+  element.target.innerHTML = '';
+
+  
+  element.target.innerHTML = `
+  <div class="circle" data-size=${size} style="width: ${size}px; height: ${size}px">
+  </div>
+  `;
+
+  element.target.children[0].addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
 }
 
-function createCross(element) {
-  if (!element.target.innerHTML) {
-    element.target.innerHTML = `
-      <div class="cross">
-        <div class="left"></div>
-        <div class="right"></div>
-      </div>
-    `;
-  }
+function createCross(element, size) {
+  element.target.innerHTML = '';
+
+  
+  element.target.innerHTML = `
+  <div class="cross" data-size=${size} style="width: ${size}px; height: ${size}px">
+  </div>
+  `;
+
+  element.target.children[0].addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
 }
 
 function endGame(isDraw) {
@@ -77,6 +103,36 @@ function endGame(isDraw) {
     gameResult.innerHTML = "Draw!";
   } else {
     gameResult.innerHTML = `${isCross ? "Crosses'" : "Circles'"} Wins!`;
+  }
+}
+
+function createFigures(type, sizes) {
+  const figuresContainer = document.getElementById(`${type}-figures`);
+
+  sizes.forEach(size => {
+    const figure = document.createElement("div");
+    figure.setAttribute('data-size', size)
+    figure.classList = `${type} ${type}-figure`
+
+    figure.style = `width: ${size}px; height: ${size}px`;
+
+    figure.addEventListener('click', function() {
+      selectFigure(type, size, figure)
+    })
+
+    figuresContainer.appendChild(figure);
+  })
+}
+
+function selectFigure(type, size, figure) {
+  if (isCross && type === 'cross' && figureSelected !== true) {
+    selectedSize = size;
+    figureSelected = true;
+    figure.parentNode.removeChild(figure);
+  } else if (!isCross && type === 'circle' && figureSelected !== true) {
+    selectedSize = size;
+    figureSelected = true;
+    figure.parentNode.removeChild(figure);
   }
 }
 
@@ -97,4 +153,11 @@ function checkDraw() {
       cell.children[0]?.classList?.contains("circle")
     );
   });
+}
+
+function cleanBoard() {
+  crossContainer.innerHTML = "";
+  circleContainer.innerHTML = "";
+
+  dataCells.forEach((cell) => {cell.classList.remove('x'); cell.classList.remove('o'); cell.setAttribute('data-size', 0)})
 }
